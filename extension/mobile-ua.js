@@ -17,7 +17,7 @@
 
   define('userAgent', ua);
   define('appVersion', ua.slice('Mozilla/'.length));
-  define('platform', 'Linux armv81');
+  define('platform', 'Linux armv8l');
   define('maxTouchPoints', 5);
 
   const original = navigator.userAgentData;

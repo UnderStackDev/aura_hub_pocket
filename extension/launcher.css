@@ -134,6 +134,7 @@ body.editing .tile { border-color: var(--glass-border); background: rgba(255, 25
 
 .empty, .error { font-size: 12px; color: var(--text-muted); text-align: center; padding: 24px 12px 8px; line-height: 1.5; }
 .error { color: var(--danger); padding-top: 12px; }
+.sheet-error { padding: 8px 0 0; text-align: left; }
 
 /* --- Painikkeet --- */
 .pill {

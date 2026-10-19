@@ -302,8 +302,10 @@ function updateService(id, patch) {
 
     const o = (await getOpen())[id];
     if (!o) return { service: svc };
-    if (svc.mobile !== before.mobile) {
-      await setMobileRule(o.tabId, svc.mobile);
+    if (svc.mobile !== before.mobile) await setMobileRule(o.tabId, svc.mobile);
+    if (svc.url !== before.url) {
+      await chrome.tabs.update(o.tabId, { url: svc.url }).catch(() => {});
+    } else if (svc.mobile !== before.mobile) {
       await chrome.tabs.reload(o.tabId, { bypassCache: true });
     }
     if (svc.width !== before.width || svc.height !== before.height) {
@@ -319,6 +321,8 @@ function removeService(id) {
     const open = await getOpen();
     if (open[id]) {
       await setMobileRule(open[id].tabId, false);
+      // Muuten ikkuna jäisi auki ilman seurantaa ja mobiilisääntöä.
+      await chrome.windows.remove(open[id].windowId).catch(() => {});
       delete open[id];
       await setOpen(open);
       await updateBadge(open);
@@ -378,7 +382,7 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
     await setServices(DEFAULT_SERVICES.map(s => ({
       ...DEFAULT_SIZE, icon: null, pinned: false, lastUsed: 0, autoName: false, ...s,
     })));
-    for (const s of DEFAULT_SERVICES) await fillIcon(s.id).catch(() => {});
+    await Promise.all(DEFAULT_SERVICES.map(s => fillIcon(s.id).catch(() => {})));
   }
 });
 
@@ -414,7 +418,18 @@ chrome.windows.onRemoved.addListener(windowId => locked(async () => {
 
 // Käyttäjän muuttama koko muistetaan palvelukohtaisesti. Waylandissa selain tietää koon
 // mutta ei paikkaa, joten paikka tulee Hyprlandin säännöstä.
-chrome.windows.onBoundsChanged.addListener(win => locked(async () => {
+// Raahaus tuottaa kymmeniä tapahtumia, joten vain viimeinen koko tallennetaan.
+const boundsTimers = new Map();
+
+chrome.windows.onBoundsChanged.addListener(win => {
+  clearTimeout(boundsTimers.get(win.id));
+  boundsTimers.set(win.id, setTimeout(() => {
+    boundsTimers.delete(win.id);
+    saveBounds(win);
+  }, 400));
+});
+
+const saveBounds = win => locked(async () => {
   const open = await getOpen();
   const id = Object.keys(open).find(k => open[k].windowId === win.id);
   if (!id || !win.width || !win.height) return;
@@ -424,7 +439,7 @@ chrome.windows.onBoundsChanged.addListener(win => locked(async () => {
   svc.width = win.width;
   svc.height = win.height;
   await setServices(services);
-}));
+});
 
 chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
   if (!('title' in change) && change.status !== 'complete') return;
@@ -448,6 +463,18 @@ chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
   });
 });
 
+// Esirenderöinti tai välilehden vapautus vaihtaa tabId:n: seuranta ja mobiilisääntö siirtyvät.
+chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => locked(async () => {
+  const open = await getOpen();
+  const id = openIdForTab(open, removedTabId);
+  if (!id) return;
+  open[id].tabId = addedTabId;
+  await setOpen(open);
+  const svc = (await getServices()).find(s => s.id === id);
+  await setMobileRule(removedTabId, false);
+  if (svc?.mobile) await setMobileRule(addedTabId, true);
+}));
+
 const handlers = {
   open: m => openService(m.id),
   addTab: m => addFromTab(m.tabId),
@@ -460,9 +487,10 @@ const handlers = {
   remove: m => removeService(m.id),
 };
 
-chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   const handler = handlers[msg?.type];
-  if (!handler) return false;
+  // Vain laajennuksen omat sivut (käynnistin) saavat muuttaa tilaa.
+  if (!handler || sender.id !== chrome.runtime.id || !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
   Promise.resolve()
     .then(() => handler(msg))
     .then(reply, err => reply({ error: err?.message || String(err) }));

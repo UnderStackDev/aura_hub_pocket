@@ -19,8 +19,8 @@ async function send(msg) {
   return res;
 }
 
-function showError(err) {
-  const el = $('error');
+function showError(err, target = 'error') {
+  const el = $(target);
   el.textContent = err ? String(err.message || err) : '';
   el.hidden = !err;
 }
@@ -125,6 +125,7 @@ function openSheet(id) {
   $('f-width').value = svc?.width || DEFAULT_SIZE.width;
   $('f-height').value = svc?.height || DEFAULT_SIZE.height;
 
+  showError(null, 'sheet-error');
   $('sheet-backdrop').hidden = false;
   (isNew ? $('f-url') : $('f-name')).focus();
 }
@@ -132,6 +133,8 @@ function openSheet(id) {
 function closeSheet() {
   sheetFor = null;
   $('sheet-backdrop').hidden = true;
+  // Blur ei sulkenut käynnistintä paneelin ollessa auki, joten se tehdään nyt.
+  if (!document.hasFocus()) window.close();
 }
 
 async function saveSheet(event) {
@@ -156,8 +159,8 @@ async function saveSheet(event) {
     showError(null);
     closeSheet();
   } catch (err) {
-    showError(err);
-    closeSheet();
+    // Paneeli jää auki, jotta käyttäjä voi korjata syötteen.
+    showError(err, 'sheet-error');
   }
 }
 
@@ -166,7 +169,7 @@ async function removeFromSheet() {
     await send({ type: 'remove', id: sheetFor });
     closeSheet();
   } catch (err) {
-    showError(err);
+    showError(err, 'sheet-error');
   }
 }
 
