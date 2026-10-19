@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aura Hub Pocket Launcher</title>
+  <link rel="stylesheet" href="launcher.css">
+</head>
+<body>
+  <main id="app">
+    <header class="top">
+      <span class="title">Aura Hub Pocket</span>
+      <div class="top-actions">
+        <button id="edit-toggle" class="icon-btn" title="Edit services" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>
+        </button>
+        <button id="add-btn" class="icon-btn" title="Add service">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section id="offer" class="offer" hidden>
+      <img id="offer-icon" alt="">
+      <div class="offer-text">
+        <span class="offer-label">Current tab</span>
+        <span id="offer-title" class="offer-title"></span>
+      </div>
+      <button id="offer-add" class="pill">Add</button>
+    </section>
+
+    <section id="grid" class="grid"></section>
+    <p id="empty" class="empty" hidden>No services yet. Add one with + or from any page's right-click menu.</p>
+    <p id="error" class="error" hidden></p>
+  </main>
+
+  <div id="sheet-backdrop" class="sheet-backdrop" hidden>
+    <form id="sheet" class="sheet" autocomplete="off">
+      <span id="sheet-title" class="sheet-title">Edit service</span>
+
+      <label class="group-label" for="f-name">Name</label>
+      <div class="input"><input id="f-name" placeholder="Auto-detect"></div>
+
+      <label class="group-label" for="f-url">Address</label>
+      <div class="input"><input id="f-url" placeholder="https://…" required></div>
+
+      <div class="row">
+        <div>
+          <span class="row-label">Mobile mode</span>
+          <span class="row-hint">Pretend to be a phone browser</span>
+        </div>
+        <label class="switch"><input id="f-mobile" type="checkbox"><span></span></label>
+      </div>
+
+      <div id="edit-only">
+        <div class="row">
+          <div>
+            <span class="row-label">Pin to top</span>
+          </div>
+          <label class="switch"><input id="f-pinned" type="checkbox"><span></span></label>
+        </div>
+
+        <span class="group-label">Window size</span>
+        <div class="size">
+          <div class="input"><input id="f-width" type="number" min="280" max="2000" step="10"></div>
+          <span class="times">×</span>
+          <div class="input"><input id="f-height" type="number" min="280" max="2000" step="10"></div>
+        </div>
+      </div>
+
+      <div class="sheet-actions">
+        <button type="button" id="f-delete" class="danger">Remove</button>
+        <span class="spacer"></span>
+        <button type="button" id="f-cancel" class="ghost">Cancel</button>
+        <button type="submit" class="pill">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module" src="launcher.js"></script>
+</body>
+</html>
